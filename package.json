@@ -9,9 +9,7 @@
     "dev:all": "concurrently \"pnpm dev\" \"pnpm server\"",
     "build": "vite build",
     "preview": "vite preview",
-    "legacy:db:migrate:centers": "psql -U postgres -d tickets -f db/migrations/2026-02-13_add_collection_centers_and_config.sql",
-    "db:seed": "psql -U postgres -d tickets -f db/seed.sql",
-    "db:seed:all": "psql -U postgres -d tickets -f db/seed_all.sql"
+    "db:seed": "psql -U postgres -d tickets -f db/seed.sql"
   },
   "dependencies": {
     "cors": "^2.8.5",
