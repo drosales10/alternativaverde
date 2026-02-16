@@ -585,7 +585,7 @@ export const fetchDashboardSummaryWithFilters = async (filters?: {
   dateTo?: string;
   month?: number | null;
   year?: number | null;
-  generatorId?: string;
+  generatorIds?: string[];
 }): Promise<{
   totalLiters: number;
   totalDispatched: number;
@@ -600,8 +600,8 @@ export const fetchDashboardSummaryWithFilters = async (filters?: {
   const dateTo = filters?.dateTo?.trim() || '';
   const month = filters?.month && filters.month >= 1 && filters.month <= 12 ? filters.month : null;
   const year = filters?.year && filters.year > 0 ? filters.year : null;
-  const generatorId = filters?.generatorId?.trim() || '';
-  const cacheKey = `${centerId || 'all'}:${dateFrom}:${dateTo}:${month || ''}:${year || ''}:${generatorId}`;
+  const generatorIds = (filters?.generatorIds || []).filter(Boolean);
+  const cacheKey = `${centerId || 'all'}:${dateFrom}:${dateTo}:${month || ''}:${year || ''}:${generatorIds.join(',')}`;
   if (dashboardCache && dashboardCache.key === cacheKey && now - dashboardCacheAt < DASHBOARD_CACHE_TTL_MS) return dashboardCache;
   try {
     const query = new URLSearchParams();
@@ -610,7 +610,7 @@ export const fetchDashboardSummaryWithFilters = async (filters?: {
     if (dateTo) query.set('dateTo', dateTo);
     if (month) query.set('month', String(month));
     if (year) query.set('year', String(year));
-    if (generatorId) query.set('generatorId', generatorId);
+    if (generatorIds.length) query.set('generatorIds', generatorIds.join(','));
     const endpoint = query.toString() ? `${API_BASE}/api/dashboard?${query.toString()}` : `${API_BASE}/api/dashboard`;
     const res = await fetch(endpoint);
     if (!res.ok) throw new Error('fetch dashboard failed');
@@ -646,7 +646,7 @@ export const fetchDashboardSummaryWithFilters = async (filters?: {
 
     const tickets = getStoredTickets().filter(t => {
       if (centerId && t.collectionCenterId !== centerId) return false;
-      if (generatorId && t.generatorId !== generatorId) return false;
+      if (generatorIds.length && !generatorIds.includes(t.generatorId)) return false;
       const ticketTime = parseTicketDate(t.date);
       if (dateFromTime && ticketTime < dateFromTime) return false;
       if (dateToTime && ticketTime > dateToTime) return false;
@@ -728,14 +728,14 @@ export const fetchReportTicketsWithFilters = async (filters?: {
   dateTo?: string;
   month?: number | null;
   year?: number | null;
-  generatorId?: string;
+  generatorIds?: string[];
 }): Promise<Ticket[]> => {
   const centerId = await resolveActiveCenterId();
   const dateFrom = filters?.dateFrom?.trim() || '';
   const dateTo = filters?.dateTo?.trim() || '';
   const month = filters?.month && filters.month >= 1 && filters.month <= 12 ? filters.month : null;
   const year = filters?.year && filters.year > 0 ? filters.year : null;
-  const generatorId = filters?.generatorId?.trim() || '';
+  const generatorIds = (filters?.generatorIds || []).filter(Boolean);
 
   try {
     const query = new URLSearchParams();
@@ -744,7 +744,7 @@ export const fetchReportTicketsWithFilters = async (filters?: {
     if (dateTo) query.set('dateTo', dateTo);
     if (month) query.set('month', String(month));
     if (year) query.set('year', String(year));
-    if (generatorId) query.set('generatorId', generatorId);
+    if (generatorIds.length) query.set('generatorIds', generatorIds.join(','));
     const endpoint = query.toString() ? `${API_BASE}/api/tickets/report?${query.toString()}` : `${API_BASE}/api/tickets/report`;
     const res = await fetch(endpoint);
     if (!res.ok) throw new Error('fetch report tickets failed');
@@ -770,7 +770,7 @@ export const fetchReportTicketsWithFilters = async (filters?: {
 
     const fallback = getStoredTickets().filter(t => {
       if (centerId && t.collectionCenterId !== centerId) return false;
-      if (generatorId && t.generatorId !== generatorId) return false;
+      if (generatorIds.length && !generatorIds.includes(t.generatorId)) return false;
       const ticketTime = parseTicketDate(t.date);
       if (dateFromTime && ticketTime < dateFromTime) return false;
       if (dateToTime && ticketTime > dateToTime) return false;

@@ -10,10 +10,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/new-ticket', label: 'Nuevo Ticket', icon: PlusCircle },
-    { path: '/history', label: 'Historial', icon: FileText },
-    { path: '/generators', label: 'Generadores', icon: Database },
-    { path: '/vehicles', label: 'Vehiculos', icon: Truck },
+    { path: '/history', label: 'Entradas', icon: FileText },
     { path: '/dispatches', label: 'Salidas', icon: Send },
+    { path: '/generators', label: 'Generadores', icon: Database },
+    { path: '/vehicles', label: 'Vehiculos', icon: Truck },  
     { path: '/configuration', label: 'Configuración', icon: Settings }
   ];
 
@@ -32,7 +32,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <span className="block font-bold text-xs tracking-wider brand-font text-emerald-400">
                 ALTERNATIVA VERDE
               </span>
-              <span className="block text-[9px] text-slate-400">GESTIÓN DE TICKETS 2026</span>
+              <span className="block text-[9px] text-slate-400">GESTIÓN DE TICKETS</span>
             </div>
           </Link>
         </div>

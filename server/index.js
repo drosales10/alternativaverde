@@ -591,6 +591,8 @@ app.get('/api/dashboard', async (req, res) => {
     const month = Number.parseInt((req.query.month || '').toString(), 10);
     const year = Number.parseInt((req.query.year || '').toString(), 10);
     const generatorId = (req.query.generatorId || '').toString().trim();
+    const generatorIds = (req.query.generatorIds || '').toString().split(',').map(v => v.trim()).filter(Boolean);
+    if (generatorId) generatorIds.push(generatorId);
 
     const where = [];
     const params = [];
@@ -632,9 +634,9 @@ app.get('/api/dashboard', async (req, res) => {
       idx += 1;
     }
 
-    if (generatorId) {
-      where.push(`t.generator_id = $${idx}`);
-      params.push(generatorId);
+    if (generatorIds.length) {
+      where.push(`t.generator_id = ANY($${idx})`);
+      params.push(generatorIds);
       idx += 1;
     }
 
@@ -742,6 +744,8 @@ app.get('/api/tickets/report', async (req, res) => {
     const month = Number.parseInt((req.query.month || '').toString(), 10);
     const year = Number.parseInt((req.query.year || '').toString(), 10);
     const generatorId = (req.query.generatorId || '').toString().trim();
+    const generatorIds = (req.query.generatorIds || '').toString().split(',').map(v => v.trim()).filter(Boolean);
+    if (generatorId) generatorIds.push(generatorId);
 
     const where = [];
     const params = [];
@@ -783,9 +787,9 @@ app.get('/api/tickets/report', async (req, res) => {
       idx += 1;
     }
 
-    if (generatorId) {
-      where.push(`t.generator_id = $${idx}`);
-      params.push(generatorId);
+    if (generatorIds.length) {
+      where.push(`t.generator_id = ANY($${idx})`);
+      params.push(generatorIds);
       idx += 1;
     }
 

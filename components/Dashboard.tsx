@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -28,7 +28,10 @@ const Dashboard: React.FC = () => {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
   const [filterYear, setFilterYear] = useState('');
-  const [filterGeneratorId, setFilterGeneratorId] = useState('');
+  const [filterGeneratorIds, setFilterGeneratorIds] = useState<string[]>([]);
+  const [generatorSearch, setGeneratorSearch] = useState('');
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const generatorDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const months = [
     { value: '1', label: 'Enero' },
@@ -61,7 +64,7 @@ const Dashboard: React.FC = () => {
       dateTo: toApiDate(filterDateTo),
       month: filterMonth ? Number.parseInt(filterMonth, 10) : null,
       year: filterYear ? Number.parseInt(filterYear, 10) : null,
-      generatorId: filterGeneratorId || ''
+      generatorIds: filterGeneratorIds.length ? filterGeneratorIds : undefined
     });
     setTickets(summary.lastFive);
     setTotalGens(summary.totalGens);
@@ -95,6 +98,23 @@ const Dashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!generatorDropdownRef.current) return;
+      if (!generatorDropdownRef.current.contains(event.target as Node)) {
+        setIsGeneratorOpen(false);
+      }
+    };
+
+    if (isGeneratorOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isGeneratorOpen]);
+
+  useEffect(() => {
     let mounted = true;
     (async () => {
       const summary = await fetchDashboardSummaryWithFilters({
@@ -102,7 +122,7 @@ const Dashboard: React.FC = () => {
         dateTo: toApiDate(filterDateTo),
         month: filterMonth ? Number.parseInt(filterMonth, 10) : null,
         year: filterYear ? Number.parseInt(filterYear, 10) : null,
-        generatorId: filterGeneratorId || ''
+        generatorIds: filterGeneratorIds.length ? filterGeneratorIds : undefined
       });
       if (!mounted) return;
       setTickets(summary.lastFive);
@@ -113,15 +133,16 @@ const Dashboard: React.FC = () => {
       setChartData(summary.chartData);
     })();
     return () => { mounted = false; };
-  }, [filterDateFrom, filterDateTo, filterMonth, filterYear, filterGeneratorId]);
+  }, [filterDateFrom, filterDateTo, filterMonth, filterYear, filterGeneratorIds]);
 
   const handleReport = async () => {
-    if (!filterGeneratorId) {
+    if (filterGeneratorIds.length !== 1) {
       alert('Seleccione un generador para generar el acta.');
       return;
     }
-    if (!filterMonth || !filterYear) {
-      alert('Seleccione mes y año para generar el acta.');
+    const hasPeriod = (!!filterMonth && !!filterYear) || (!!filterDateFrom && !!filterDateTo);
+    if (!hasPeriod) {
+      alert('Seleccione mes/año o un rango de fechas para generar el acta.');
       return;
     }
 
@@ -130,10 +151,10 @@ const Dashboard: React.FC = () => {
       dateTo: toApiDate(filterDateTo),
       month: Number.parseInt(filterMonth, 10),
       year: Number.parseInt(filterYear, 10),
-      generatorId: filterGeneratorId
+      generatorIds: filterGeneratorIds
     });
 
-    const selectedGenerator = generators.find(g => g.id === filterGeneratorId);
+    const selectedGenerator = generators.find(g => g.id === filterGeneratorIds[0]);
     const generatorName = selectedGenerator?.name || '---';
     const generatorRif = selectedGenerator?.rif || '---';
     const collectionMode = selectedGenerator?.collectionMode || '';
@@ -141,6 +162,9 @@ const Dashboard: React.FC = () => {
     const ticketNumbersList = ticketsData.map(t => t.ticketNumber).filter(Boolean);
     const ticketNumbersText = ticketNumbersList.join(', ');
     const monthLabel = months.find(m => m.value === filterMonth)?.label || '';
+    const periodLabel = filterMonth && filterYear
+      ? `${monthLabel.toUpperCase()} de ${filterYear}`
+      : `del ${toApiDate(filterDateFrom)} al ${toApiDate(filterDateTo)}`;
     const activeCenter = centers.find(c => c.id === (config.collectionCenterId || ''));
     const centerState = activeCenter?.state || '__________';
     const printDate = new Date();
@@ -192,7 +216,7 @@ const Dashboard: React.FC = () => {
     <p class="text">
       Quien suscribe, en representación del establecimiento comercial <strong>${generatorName}</strong>, identificado con el RIF <strong>${generatorRif}</strong>,
       hace constar mediante la presente la validación del servicio de recolección de Aceite Vegetal Usado (AVU) ejecutado por la empresa
-      <strong>ALTERNATIVA VERDE 2023, C.A.</strong> durante el período correspondiente al mes de <strong>${monthLabel.toUpperCase()}</strong> de <strong>${filterYear}</strong>.
+      <strong>ALTERNATIVA VERDE 2023, C.A.</strong> durante el período correspondiente a <strong>${periodLabel}</strong>.
     </p>
 
     <div class="section-title">DETALLE DE RECEPCIÓN CONSOLIDADA:</div>
@@ -255,12 +279,23 @@ const Dashboard: React.FC = () => {
     setConfig(updated);
     const generatorsData = await fetchGenerators();
     setGenerators(generatorsData);
-    setFilterGeneratorId('');
+    setFilterGeneratorIds([]);
+    setGeneratorSearch('');
+    setIsGeneratorOpen(false);
     await loadSummary();
     setChangingCenter(false);
   };
 
-  const showDispatches = !filterGeneratorId;
+  const showDispatches = filterGeneratorIds.length === 0;
+  const canGenerateActa = filterGeneratorIds.length === 1;
+  const selectedGeneratorLabel = filterGeneratorIds.length === 0
+    ? 'Todos'
+    : filterGeneratorIds.length === 1
+      ? (generators.find(g => g.id === filterGeneratorIds[0])?.name || '1 seleccionado')
+      : `${filterGeneratorIds.length} seleccionados`;
+  const filteredGenerators = generators
+    .filter(g => g.name.toLowerCase().includes(generatorSearch.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name));
   const stats = [
     { label: 'Total Recolectado', value: `${totalLiters.toLocaleString()} Lts`, icon: Droplet, color: 'emerald', trend: '+12%' },
     { label: 'Clientes Activos', value: totalGens, icon: Users, color: 'blue', trend: '+3' },
@@ -281,9 +316,9 @@ const Dashboard: React.FC = () => {
           />
           <div>
             <h1 className="text-2xl font-bold text-slate-900 brand-font">
-               Alternativa Verde Dashboard
+               Alternativa Verde - Panel de Control
             </h1>
-            <p className="text-slate-500">Sistema de Gestión de Recolección de AVU - Ciclo 2026</p>
+            <p className="text-slate-500">Sistema de Gestión de Recolección de AVU</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -363,16 +398,54 @@ const Dashboard: React.FC = () => {
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Generador</label>
-            <select
-              className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg"
-              value={filterGeneratorId}
-              onChange={(e) => setFilterGeneratorId(e.target.value)}
-            >
-              <option value="">Todos</option>
-              {generators.sort((a, b) => a.name.localeCompare(b.name)).map(g => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
+            <div className="relative" ref={generatorDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsGeneratorOpen(prev => !prev)}
+                className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-left flex items-center justify-between gap-2"
+              >
+                <span className="truncate">{selectedGeneratorLabel}</span>
+                {filterGeneratorIds.length > 1 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                    {filterGeneratorIds.length}
+                  </span>
+                )}
+              </button>
+              {isGeneratorOpen && (
+                <div className="absolute z-10 mt-2 w-full bg-white border border-slate-200 rounded-lg shadow-lg p-3">
+                  <input
+                    className="w-full p-2 border rounded mb-2"
+                    placeholder="Buscar generador..."
+                    value={generatorSearch}
+                    onChange={(e) => setGeneratorSearch(e.target.value)}
+                  />
+                  <div className="max-h-56 overflow-auto space-y-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={filterGeneratorIds.length === 0}
+                        onChange={() => setFilterGeneratorIds([])}
+                      />
+                      Todos
+                    </label>
+                    {filteredGenerators.map(g => (
+                      <label key={g.id} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={filterGeneratorIds.includes(g.id)}
+                          onChange={() => {
+                            setFilterGeneratorIds(prev => prev.includes(g.id)
+                              ? prev.filter(id => id !== g.id)
+                              : prev.concat(g.id));
+                          }}
+                        />
+                        {g.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
@@ -383,7 +456,9 @@ const Dashboard: React.FC = () => {
                 setFilterDateTo('');
                 setFilterMonth('');
                 setFilterYear('');
-                setFilterGeneratorId('');
+                setFilterGeneratorIds([]);
+                setGeneratorSearch('');
+                setIsGeneratorOpen(false);
               }}
             >
               Limpiar filtros
@@ -392,8 +467,9 @@ const Dashboard: React.FC = () => {
 
           <div>
             <button
-              className="w-full px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800"
+              className="w-full px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50"
               onClick={handleReport}
+              disabled={!canGenerateActa}
             >
               Generar acta
             </button>
