@@ -1,0 +1,2 @@
+ALTER TABLE IF EXISTS generators
+ADD COLUMN IF NOT EXISTS collection_mode TEXT;

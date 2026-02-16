@@ -1,0 +1,36 @@
+{
+  "name": "alternativa-verde---sistema-de-tickets",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "server": "node server/index.js",
+    "dev:all": "concurrently \"pnpm dev\" \"pnpm server\"",
+    "build": "vite build",
+    "preview": "vite preview",
+    "db:migrate:centers": "psql -U postgres -d tickets -f db/migrations/2026-02-13_add_collection_centers_and_config.sql",
+    "db:seed": "psql -U postgres -d tickets -f db/seed.sql",
+    "db:seed:all": "psql -U postgres -d tickets -f db/seed_all.sql"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "lucide-react": "^0.563.0",
+    "pg": "^8.11.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.0",
+    "recharts": "^3.7.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "concurrently": "^8.2.2",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}

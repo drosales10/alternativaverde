@@ -1,0 +1,5 @@
+{
+  "name": "Alternativa Verde - Sistema de Tickets",
+  "description": "Aplicación profesional para la gestión de tickets de recepción de materiales reciclables (AVU), diseñada para Alternativa Verde 2023 C.A. Permite el registro de recolectores, generadores y generación de tickets imprimibles siguiendo el formato corporativo.",
+  "requestFramePermissions": []
+}
