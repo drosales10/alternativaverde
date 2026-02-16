@@ -1,18 +1,9 @@
 -- Schema for Alternativa Verde tickets database (PostgreSQL)
+-- Consolidated with all migrations
 -- Run: psql -U <user> -d tickets -f db/schema.sql
 
--- Generators table (clients)
-CREATE TABLE IF NOT EXISTS generators (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  rif TEXT,
-  phone TEXT,
-  address TEXT,
-  sector TEXT,
-  collection_mode TEXT,
-  collection_center_id TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+-- Trigram extension for ILIKE searches
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- Collection centers table
 CREATE TABLE IF NOT EXISTS collection_centers (
@@ -42,6 +33,35 @@ CREATE TABLE IF NOT EXISTS app_configuration (
   id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
   collection_center_id TEXT REFERENCES collection_centers(id) ON DELETE SET NULL,
   updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+INSERT INTO app_configuration (id, collection_center_id, updated_at)
+VALUES (1, NULL, now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Generators table (clients)
+CREATE TABLE IF NOT EXISTS generators (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  rif TEXT,
+  phone TEXT,
+  address TEXT,
+  sector TEXT,
+  collection_mode TEXT,
+  collection_center_id TEXT REFERENCES collection_centers(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Vehicles table
+CREATE TABLE IF NOT EXISTS vehicles (
+  id TEXT PRIMARY KEY,
+  plate TEXT NOT NULL UNIQUE,
+  brand TEXT,
+  model TEXT,
+  owner TEXT,
+  is_default BOOLEAN NOT NULL DEFAULT false,
+  collection_center_id TEXT REFERENCES collection_centers(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Tickets table
@@ -79,53 +99,6 @@ CREATE TABLE IF NOT EXISTS dispatches (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Backwards-compatible migration for existing databases
-ALTER TABLE IF EXISTS tickets ADD COLUMN IF NOT EXISTS collection_center_id TEXT REFERENCES collection_centers(id) ON DELETE SET NULL;
-ALTER TABLE IF EXISTS tickets ADD COLUMN IF NOT EXISTS collector_member_id TEXT REFERENCES collection_center_members(id) ON DELETE SET NULL;
-
--- Vehicles table
-CREATE TABLE IF NOT EXISTS vehicles (
-  id TEXT PRIMARY KEY,
-  plate TEXT NOT NULL UNIQUE,
-  brand TEXT,
-  model TEXT,
-  owner TEXT,
-  is_default BOOLEAN NOT NULL DEFAULT false,
-  collection_center_id TEXT REFERENCES collection_centers(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE IF EXISTS generators ADD COLUMN IF NOT EXISTS collection_center_id TEXT REFERENCES collection_centers(id) ON DELETE SET NULL;
-ALTER TABLE IF EXISTS generators ADD COLUMN IF NOT EXISTS collection_mode TEXT;
-ALTER TABLE IF EXISTS vehicles ADD COLUMN IF NOT EXISTS collection_center_id TEXT REFERENCES collection_centers(id) ON DELETE SET NULL;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_constraint
-    WHERE conname = 'generators_collection_center_id_fkey'
-  ) THEN
-    ALTER TABLE generators
-      ADD CONSTRAINT generators_collection_center_id_fkey
-      FOREIGN KEY (collection_center_id)
-      REFERENCES collection_centers(id)
-      ON DELETE SET NULL;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_constraint
-    WHERE conname = 'vehicles_collection_center_id_fkey'
-  ) THEN
-    ALTER TABLE vehicles
-      ADD CONSTRAINT vehicles_collection_center_id_fkey
-      FOREIGN KEY (collection_center_id)
-      REFERENCES collection_centers(id)
-      ON DELETE SET NULL;
-  END IF;
-END $$;
-
 -- Optional indexes for faster queries
 CREATE INDEX IF NOT EXISTS idx_tickets_generator_id ON tickets(generator_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_date ON tickets(date);
@@ -142,8 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_dispatches_date ON dispatches(date);
 CREATE INDEX IF NOT EXISTS idx_dispatches_vehicle_id ON dispatches(vehicle_id);
 CREATE INDEX IF NOT EXISTS idx_dispatches_collection_center_id ON dispatches(collection_center_id);
 
--- Trigram indexes for ILIKE searches (requires pg_trgm extension)
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- Trigram indexes for ILIKE searches
 CREATE INDEX IF NOT EXISTS idx_tickets_ticket_number_trgm ON tickets USING GIN (ticket_number gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_tickets_generator_name_trgm ON tickets USING GIN (generator_name gin_trgm_ops);
 

@@ -15,10 +15,9 @@ Portal de Gestion Operativo de Alternativa Verde para el control de entradas, sa
    `pnpm install`
 2. Crea el archivo `.env` a partir de `.env.example` y completa los datos de conexion a la base de datos.
 3. Crea la base de datos `tickets` en PostgreSQL.
-4. Carga el esquema:
+4. Carga el esquema consolidado (incluye todas las migraciones):
    `psql -U postgres -d tickets -f db/schema.sql`
-5. Ejecuta migraciones y datos iniciales:
-   `pnpm db:migrate:centers`
+5. Carga datos iniciales:
    `pnpm db:seed`
 6. Inicia la aplicacion y el servidor API:
    `pnpm dev:all`
