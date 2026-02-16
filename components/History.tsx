@@ -513,8 +513,8 @@ const History: React.FC = () => {
             <h2 class="center">DIAGNOSTICO DE VOLUMEN ${monthYearLabel}</h2>
             <p><span class="label">Tickets totales cargados:</span> ${allItems.length}</p>
             <p><span class="label">Tickets del mes:</span> ${filtered.length}</p>
-            <p><span class="label">Tickets fuera del mes:</span> ${outsideMonthCount}</p>
-            <p><span class="label">Tickets con fecha invalida:</span> ${invalidDateCount}</p>
+            <!-- <p><span class="label">Tickets fuera del mes:</span> ${outsideMonthCount}</p>
+            <p><span class="label">Tickets con fecha invalida:</span> ${invalidDateCount}</p> -->
             <table>
               <thead>
                 <tr>
