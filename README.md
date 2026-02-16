@@ -1,22 +1,39 @@
-# alternativaverde
-Portal de Gestion Operativo de Alternativa Verde
-
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+  <img src="src/assets/logo_av.png" alt="Alternativa Verde" width="180" />
 </div>
 
-# Run and deploy your AI Studio app
+# Alternativa Verde - Sistema de Tickets
+Portal de Gestion Operativo de Alternativa Verde para el control de entradas, salidas y seguimiento de materiales por centro de acopio.
 
-This contains everything you need to run your app locally.
+**Responsable de la codificacion:** Denny Javier Rosaes, 2026, v0.0.0
 
-View your app in AI Studio: https://ai.studio/apps/drive/1FaUXfc2mcYIz3ZhydUkMsgY-qULSECw7
+## Instalacion
 
-## Run Locally
+**Requisitos:** Node.js, pnpm, PostgreSQL.
 
-**Prerequisites:** Node.js
+1. Instala dependencias:
+   `pnpm install`
+2. Crea el archivo `.env` a partir de `.env.example` y completa los datos de conexion a la base de datos.
+3. Crea la base de datos `tickets` en PostgreSQL.
+4. Carga el esquema:
+   `psql -U postgres -d tickets -f db/schema.sql`
+5. Ejecuta migraciones y datos iniciales:
+   `pnpm db:migrate:centers`
+   `pnpm db:seed`
+6. Inicia la aplicacion y el servidor API:
+   `pnpm dev:all`
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Configuracion inicial
+
+1. Ingresa al modulo de Configuracion.
+2. Crea o selecciona el centro de acopio activo.
+3. Registra el equipo del centro (miembros y roles).
+4. Verifica que el centro activo quede aplicado en la configuracion.
+
+## Llenado de datos por centro de acopio
+
+1. Registra los generadores (clientes) con su modo de recoleccion.
+2. Registra los vehiculos del centro y marca el principal si aplica.
+3. Crea tickets de entrada indicando generador, material, cantidad, estado y recolector.
+4. Registra salidas (despachos) cuando se trasladen materiales.
+5. Revisa el historial para validar movimientos y correcciones.
