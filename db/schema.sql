@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS collection_center_members (
   id TEXT PRIMARY KEY,
   center_id TEXT NOT NULL REFERENCES collection_centers(id) ON DELETE CASCADE,
   full_name TEXT NOT NULL,
+  cedula TEXT,
   phone TEXT,
   role TEXT,
   is_active BOOLEAN NOT NULL DEFAULT true,

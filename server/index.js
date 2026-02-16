@@ -429,9 +429,9 @@ app.get('/api/collection-centers/:centerId/members', async (req, res) => {
 app.post('/api/collection-center-members', async (req, res) => {
   const m = req.body;
   try {
-    const sql = `INSERT INTO collection_center_members (id, center_id, full_name, phone, role, is_active, created_at)
-                 VALUES ($1,$2,$3,$4,$5,$6,now()) RETURNING *`;
-    const params = [m.id, m.centerId, m.fullName, m.phone || '', m.role || 'Recolector', m.isActive !== false];
+    const sql = `INSERT INTO collection_center_members (id, center_id, full_name, cedula, phone, role, is_active, created_at)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,now()) RETURNING *`;
+    const params = [m.id, m.centerId, m.fullName, m.cedula || '', m.phone || '', m.role || 'Recolector', m.isActive !== false];
     const result = await pool.query(sql, params);
     res.json(result.rows[0]);
   } catch (err) {
@@ -445,9 +445,9 @@ app.put('/api/collection-center-members/:id', async (req, res) => {
   const m = req.body;
   try {
     const sql = `UPDATE collection_center_members
-                 SET center_id=$1, full_name=$2, phone=$3, role=$4, is_active=$5
-                 WHERE id=$6 RETURNING *`;
-    const params = [m.centerId, m.fullName, m.phone || '', m.role || 'Recolector', m.isActive !== false, id];
+                 SET center_id=$1, full_name=$2, cedula=$3, phone=$4, role=$5, is_active=$6
+                 WHERE id=$7 RETURNING *`;
+    const params = [m.centerId, m.fullName, m.cedula || '', m.phone || '', m.role || 'Recolector', m.isActive !== false, id];
     const result = await pool.query(sql, params);
     res.json(result.rows[0]);
   } catch (err) {

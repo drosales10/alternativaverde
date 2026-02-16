@@ -39,6 +39,7 @@ export interface CollectionCenterMember {
   id: string;
   centerId: string;
   fullName: string;
+  cedula?: string;
   phone: string;
   role: string;
   isActive: boolean;

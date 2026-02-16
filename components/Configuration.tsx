@@ -25,7 +25,7 @@ const Configuration: React.FC = () => {
 
   const [newCenter, setNewCenter] = useState({ name: '', state: '', city: '', address: '' });
   const [centerEditForm, setCenterEditForm] = useState({ name: '', state: '', city: '', address: '', isActive: true });
-  const [newMember, setNewMember] = useState({ fullName: '', phone: '', role: 'Recolector' });
+  const [newMember, setNewMember] = useState({ fullName: '', cedula: '', phone: '', role: 'Recolector' });
 
   const activeCenter = useMemo(() => centers.find(c => c.id === config.collectionCenterId) || null, [centers, config.collectionCenterId]);
 
@@ -121,12 +121,13 @@ const Configuration: React.FC = () => {
       id: `ccm_${Date.now()}`,
       centerId: config.collectionCenterId,
       fullName: newMember.fullName.trim(),
+      cedula: newMember.cedula.trim(),
       phone: newMember.phone.trim(),
       role: newMember.role.trim() || 'Recolector',
       isActive: true
     };
     await postCollectionCenterMember(member);
-    setNewMember({ fullName: '', phone: '', role: 'Recolector' });
+    setNewMember({ fullName: '', cedula: '', phone: '', role: 'Recolector' });
     await reloadMembers(config.collectionCenterId);
   };
 
@@ -134,6 +135,7 @@ const Configuration: React.FC = () => {
     setEditingMemberId(member.id);
     setNewMember({
       fullName: member.fullName,
+      cedula: member.cedula || '',
       phone: member.phone,
       role: member.role
     });
@@ -146,12 +148,13 @@ const Configuration: React.FC = () => {
       id: editingMemberId,
       centerId: config.collectionCenterId,
       fullName: newMember.fullName.trim(),
+      cedula: newMember.cedula.trim(),
       phone: newMember.phone.trim(),
       role: newMember.role.trim() || 'Recolector',
       isActive: true
     });
     setEditingMemberId(null);
-    setNewMember({ fullName: '', phone: '', role: 'Recolector' });
+    setNewMember({ fullName: '', cedula: '', phone: '', role: 'Recolector' });
     await reloadMembers(config.collectionCenterId);
   };
 
@@ -308,7 +311,7 @@ const Configuration: React.FC = () => {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h2 className="text-lg font-semibold text-slate-900">CRUD Miembros - {activeCenter?.name || 'Centro activo'}</h2>
-              <button onClick={() => { setIsMembersModalOpen(false); setEditingMemberId(null); setNewMember({ fullName: '', phone: '', role: 'Recolector' }); }} className="p-2 rounded hover:bg-slate-100">
+              <button onClick={() => { setIsMembersModalOpen(false); setEditingMemberId(null); setNewMember({ fullName: '', cedula: '', phone: '', role: 'Recolector' }); }} className="p-2 rounded hover:bg-slate-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -323,6 +326,12 @@ const Configuration: React.FC = () => {
                   onChange={(e) => setNewMember(prev => ({ ...prev, fullName: e.target.value }))}
                 />
                 <div className="grid grid-cols-2 gap-3">
+                  <input
+                    placeholder="Cédula"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg"
+                    value={newMember.cedula}
+                    onChange={(e) => setNewMember(prev => ({ ...prev, cedula: e.target.value }))}
+                  />
                   <input
                     placeholder="Teléfono"
                     className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg"
@@ -341,7 +350,7 @@ const Configuration: React.FC = () => {
                     {editingMemberId ? 'Guardar Miembro' : 'Agregar Miembro'}
                   </button>
                   {editingMemberId && (
-                    <button type="button" className="px-4 py-2 border rounded-lg" onClick={() => { setEditingMemberId(null); setNewMember({ fullName: '', phone: '', role: 'Recolector' }); }}>
+                    <button type="button" className="px-4 py-2 border rounded-lg" onClick={() => { setEditingMemberId(null); setNewMember({ fullName: '', cedula: '', phone: '', role: 'Recolector' }); }}>
                       Cancelar edición
                     </button>
                   )}
@@ -353,6 +362,7 @@ const Configuration: React.FC = () => {
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
                       <th className="text-left px-3 py-2">Nombre</th>
+                      <th className="text-left px-3 py-2">Cédula</th>
                       <th className="text-left px-3 py-2">Centro de Acopio</th>
                       <th className="text-left px-3 py-2">Rol</th>
                       <th className="text-left px-3 py-2">Teléfono</th>
@@ -362,11 +372,12 @@ const Configuration: React.FC = () => {
                   <tbody>
                     {members.length === 0 ? (
                       <tr>
-                        <td className="px-3 py-3 text-slate-500" colSpan={5}>Sin miembros para el centro activo.</td>
+                        <td className="px-3 py-3 text-slate-500" colSpan={6}>Sin miembros para el centro activo.</td>
                       </tr>
                     ) : members.map(member => (
                       <tr key={member.id} className="border-b border-slate-100 last:border-b-0">
                         <td className="px-3 py-2">{member.fullName}</td>
+                        <td className="px-3 py-2">{member.cedula || '-'}</td>
                         <td className="px-3 py-2">{activeCenter?.name || 'Sin centro'}</td>
                         <td className="px-3 py-2">{member.role}</td>
                         <td className="px-3 py-2">{member.phone}</td>

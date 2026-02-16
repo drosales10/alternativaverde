@@ -116,6 +116,7 @@ const normalizeCollectionCenterMember = (r: any): CollectionCenterMember => ({
   id: r.id,
   centerId: r.center_id || r.centerId,
   fullName: r.full_name || r.fullName,
+  cedula: r.cedula || r.cedula_id || r.cedulaId || '',
   phone: r.phone || '',
   role: r.role || 'Recolector',
   isActive: r.is_active ?? r.isActive ?? true
@@ -465,6 +466,7 @@ export const fetchTicketsPage = async (params?: {
   offset?: number;
   search?: string;
   date?: string;
+  collectionCenterId?: string | null;
   sortKey?: 'ticketNumber' | 'date' | 'center' | 'generatorName' | 'quantity' | 'collectorName';
   sortDir?: 'asc' | 'desc';
   skipCache?: boolean;
@@ -476,7 +478,9 @@ export const fetchTicketsPage = async (params?: {
   const sortKey = params?.sortKey;
   const sortDir = params?.sortDir === 'asc' ? 'asc' : 'desc';
   const skipCache = !!params?.skipCache;
-  const centerId = await resolveActiveCenterId();
+  const centerId = params?.collectionCenterId !== undefined
+    ? params.collectionCenterId
+    : await resolveActiveCenterId();
 
   const cacheKey = `${centerId || 'all'}:${limit}:${offset}:${search}:${date}:${sortKey || 'none'}:${sortDir}`;
   const cached = ticketsPageCache.get(cacheKey);
@@ -938,8 +942,10 @@ export const putVehicle = async (vehicle: Vehicle): Promise<Vehicle | null> => {
   }
 };
 
-export const fetchDispatches = async (): Promise<Dispatch[]> => {
-  const centerId = await resolveActiveCenterId();
+export const fetchDispatches = async (params?: { collectionCenterId?: string | null }): Promise<Dispatch[]> => {
+  const centerId = params?.collectionCenterId !== undefined
+    ? params.collectionCenterId
+    : await resolveActiveCenterId();
   try {
     const query = new URLSearchParams();
     if (centerId) query.set('collectionCenterId', centerId);

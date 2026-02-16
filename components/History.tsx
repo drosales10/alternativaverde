@@ -2,7 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Printer, Eye, ChevronRight, FileDown, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
-import { fetchTicketsPage, deleteTicketApi, fetchCollectionCenters } from '../utils/database';
+import {
+  fetchTicketsPage,
+  deleteTicketApi,
+  fetchCollectionCenters,
+  fetchGenerators,
+  fetchDispatches,
+  fetchAppConfiguration,
+  fetchCollectionCenterMembers,
+  fetchVehicles
+} from '../utils/database';
 import { CollectionCenter, Ticket } from '../types';
 import { LOGO_URL } from '../constants';
 
@@ -20,9 +29,31 @@ const History: React.FC = () => {
   const [debouncedDate, setDebouncedDate] = useState('');
   const [sortKey, setSortKey] = useState<'ticketNumber' | 'date' | 'center' | 'generatorName' | 'quantity' | 'collectorName' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const today = new Date();
+  const [bookMonth, setBookMonth] = useState(String(today.getMonth() + 1).padStart(2, '0'));
+  const [bookYear, setBookYear] = useState(String(today.getFullYear()));
+  const [isBookGenerating, setIsBookGenerating] = useState(false);
 
   const pageSize = 50;
   const exportPageSize = 200;
+  const months = [
+    { value: '01', label: 'Enero' },
+    { value: '02', label: 'Febrero' },
+    { value: '03', label: 'Marzo' },
+    { value: '04', label: 'Abril' },
+    { value: '05', label: 'Mayo' },
+    { value: '06', label: 'Junio' },
+    { value: '07', label: 'Julio' },
+    { value: '08', label: 'Agosto' },
+    { value: '09', label: 'Septiembre' },
+    { value: '10', label: 'Octubre' },
+    { value: '11', label: 'Noviembre' },
+    { value: '12', label: 'Diciembre' }
+  ];
+  const years = React.useMemo(() => {
+    const year = today.getFullYear();
+    return Array.from({ length: 6 }, (_, i) => String(year - 2 + i));
+  }, [today]);
 
   useEffect(() => {
     let mounted = true;
@@ -76,14 +107,44 @@ const History: React.FC = () => {
   );
 
   const parseDateValue = (value: string) => {
+    const slashParts = value.split('/');
+    if (slashParts.length === 3) {
+      const [day, month, year] = slashParts.map(Number);
+      if (!day || !month || !year) return 0;
+      return new Date(year, month - 1, day).getTime();
+    }
+    const dashParts = value.split('-');
+    if (dashParts.length === 3) {
+      const [year, month, day] = dashParts.map(Number);
+      if (!day || !month || !year) return 0;
+      return new Date(year, month - 1, day).getTime();
+    }
     const parsed = Date.parse(value);
     if (!Number.isNaN(parsed)) return parsed;
-    const parts = value.split('/');
-    if (parts.length !== 3) return 0;
-    const [day, month, year] = parts.map(Number);
-    if (!day || !month || !year) return 0;
-    return new Date(year, month - 1, day).getTime();
+    return 0;
   };
+
+  const parseTicketDate = (value: string) => {
+    const slashParts = value.split('/');
+    if (slashParts.length === 3) {
+      const [day, month, year] = slashParts.map(Number);
+      if (!day || !month || !year) return null;
+      return new Date(year, month - 1, day);
+    }
+    const dashParts = value.split('-');
+    if (dashParts.length === 3) {
+      const [year, month, day] = dashParts.map(Number);
+      if (!day || !month || !year) return null;
+      return new Date(year, month - 1, day);
+    }
+    const parsed = Date.parse(value);
+    if (!Number.isNaN(parsed)) return new Date(parsed);
+    return null;
+  };
+
+  const formatLiters = (value: number) => (
+    new Intl.NumberFormat('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 3 }).format(value)
+  );
 
   const sortedTickets = React.useMemo(() => {
     if (!sortKey) return tickets;
@@ -174,6 +235,347 @@ const History: React.FC = () => {
     }
   };
 
+  const handleBookExport = async () => {
+    if (isBookGenerating) return;
+    setIsBookGenerating(true);
+    try {
+      const allItems: Ticket[] = [];
+      let offset = 0;
+
+      while (true) {
+        const batch = await fetchTicketsPage({
+          limit: exportPageSize,
+          offset,
+          collectionCenterId: null,
+          skipCache: true
+        });
+        allItems.push(...batch.items);
+        offset += exportPageSize;
+        if (allItems.length >= batch.total || batch.items.length === 0) break;
+      }
+
+      const generators = await fetchGenerators();
+      const dispatches = await fetchDispatches({ collectionCenterId: null });
+      const vehicles = await fetchVehicles();
+      const config = await fetchAppConfiguration();
+      const generatorById = new Map(generators.map(g => [g.id, g]));
+      const monthLabel = months.find(m => m.value === bookMonth)?.label || bookMonth;
+      const monthYearLabel = `${monthLabel} ${bookYear}`;
+
+      let invalidDateCount = 0;
+      let outsideMonthCount = 0;
+      const filtered = allItems.filter(ticket => {
+        const date = parseTicketDate(ticket.date || '');
+        if (!date) {
+          invalidDateCount += 1;
+          return false;
+        }
+        const match = String(date.getFullYear()) === bookYear
+          && String(date.getMonth() + 1).padStart(2, '0') === bookMonth;
+        if (!match) outsideMonthCount += 1;
+        return match;
+      });
+
+      filtered.sort((a, b) => parseDateValue(a.date || '') - parseDateValue(b.date || ''));
+
+      const filteredDispatches = dispatches.filter(dispatch => {
+        const date = parseTicketDate(dispatch.date || '');
+        if (!date) return false;
+        return String(date.getFullYear()) === bookYear && String(date.getMonth() + 1).padStart(2, '0') === bookMonth;
+      });
+
+      filteredDispatches.sort((a, b) => parseDateValue(a.date || '') - parseDateValue(b.date || ''));
+
+      const totalLiters = filtered.reduce((sum, t) => sum + Number(t.quantity || 0), 0);
+      const totalLitersLabel = formatLiters(totalLiters);
+
+      const centerTotals = new Map<string, { name: string; liters: number; count: number }>();
+      filtered.forEach(ticket => {
+        const centerId = ticket.collectionCenterId || 'Sin centro';
+        const centerName = centers.find(c => c.id === ticket.collectionCenterId)?.name || centerId;
+        const current = centerTotals.get(centerId) || { name: centerName, liters: 0, count: 0 };
+        current.liters += Number(ticket.quantity || 0);
+        current.count += 1;
+        centerTotals.set(centerId, current);
+      });
+
+      const centerRows = Array.from(centerTotals.values())
+        .sort((a, b) => b.liters - a.liters)
+        .map(row => `
+          <tr>
+            <td>${row.name}</td>
+            <td class="num">${row.count}</td>
+            <td class="num">${formatLiters(row.liters)}</td>
+          </tr>
+        `)
+        .join('');
+
+      const centerTableBody = centerRows || `
+        <tr>
+          <td colspan="3" class="empty">Sin datos para el mes seleccionado.</td>
+        </tr>
+      `;
+
+      const rowsHtml = filtered.map(ticket => {
+        const generator = generatorById.get(ticket.generatorId);
+        const sector = generator?.sector || '';
+        return `
+          <tr>
+            <td>${ticket.ticketNumber || ''}</td>
+            <td>${ticket.date || ''}</td>
+            <td>${ticket.generatorName || ''}</td>
+            <td>${sector}</td>
+            <td class="num">${formatLiters(Number(ticket.quantity || 0))}</td>
+            <td>${ticket.collectorName || ''}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const tableBody = rowsHtml || `
+        <tr>
+          <td colspan="5" class="empty">Sin registros para el mes seleccionado.</td>
+        </tr>
+      `;
+
+      const dispatchRowsHtml = filteredDispatches.map(dispatch => `
+        <tr>
+          <td>${dispatch.date || ''}</td>
+          <td>${dispatch.description || ''}</td>
+          <td>${dispatch.presentation || ''}</td>
+          <td class="num">${formatLiters(Number(dispatch.dispatchedQuantity || 0))}</td>
+          <td>${dispatch.destinationName || ''}</td>
+          <td>${dispatch.vehiclePlate || ''}</td>
+          <td>${dispatch.driverName || ''}</td>
+        </tr>
+      `).join('');
+
+      const dispatchTableBody = dispatchRowsHtml || `
+        <tr>
+          <td colspan="7" class="empty">Sin salidas registradas para el mes seleccionado.</td>
+        </tr>
+      `;
+
+      const dispatchTotalLiters = filteredDispatches.reduce((sum, d) => sum + Number(d.dispatchedQuantity || 0), 0);
+      const dispatchTotalLitersLabel = formatLiters(dispatchTotalLiters);
+
+      const centerId = config.collectionCenterId
+        || filtered[0]?.collectionCenterId
+        || allItems[0]?.collectionCenterId
+        || null;
+      const activeCenter = centerId ? centers.find(c => c.id === centerId) : null;
+      const centerLabel = activeCenter
+        ? `${activeCenter.name}${activeCenter.address ? `, ${activeCenter.address}` : ''}`
+        : 'Centro de acopio no definido';
+
+      let jefeName = 'No definido';
+      let jefeCedula = '';
+      if (centerId) {
+        const members = await fetchCollectionCenterMembers(centerId);
+        const jefe = members.find(m => /jefe|operaciones/i.test(m.role || ''))
+          || members.find(m => /coordinador/i.test(m.role || ''))
+          || members[0];
+        if (jefe?.fullName) jefeName = jefe.fullName;
+        if (jefe?.cedula) jefeCedula = jefe.cedula;
+      }
+      const jefeLabel = jefeCedula ? `${jefeName} (C.I. ${jefeCedula})` : jefeName;
+
+      const vehiclesForCenter = centerId ? vehicles.filter(v => v.collectionCenterId === centerId) : vehicles;
+      const defaultVehicle = vehiclesForCenter.find(v => v.isDefault) || vehiclesForCenter[0];
+      const vehicleLabel = defaultVehicle
+        ? `${defaultVehicle.brand || ''} ${defaultVehicle.model || ''}`.trim()
+        : 'No definida';
+      const vehiclePlate = defaultVehicle?.plate || 'No definida';
+
+      const reportHtml = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8" />
+          <title>Libro de Control - ${monthYearLabel}</title>
+          <style>
+            * { box-sizing: border-box; }
+            body { margin: 0; font-family: 'Arial', sans-serif; color: #111827; }
+            .page { position: relative; min-height: 100vh; padding: 96px 64px 56px; display: flex; flex-direction: column; justify-content: flex-start; }
+            .page.cover { justify-content: center; text-align: center; padding-top: 140px; }
+            .logo { position: absolute; top: 24px; left: 56px; width: 140px; height: auto; display: block; z-index: 2; }
+            .folio { position: absolute; top: 32px; right: 56px; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; }
+            .page h1, .page h2 { margin-top: 0; }
+            h1 { font-size: 22px; margin: 0 0 18px; text-transform: uppercase; }
+            h2 { font-size: 18px; margin: 0 0 16px; text-transform: uppercase; }
+            p { margin: 6px 0; font-size: 14px; line-height: 1.4; }
+            .center { text-align: center; }
+            .block { margin-top: 24px; }
+            .label { font-weight: 700; }
+            .next-folio { margin-top: 18px; font-weight: 600; }
+            table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+            th { background: #f8fafc; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
+            td.num { text-align: right; }
+            .empty { text-align: center; font-style: italic; padding: 18px; }
+            @media print {
+              body { margin: 0; }
+              .page { page-break-after: always; }
+              .page:last-child { page-break-after: auto; }
+              .logo { visibility: visible; }
+            }
+          </style>
+        </head>
+        <body>
+          <section class="page cover">
+            <img class="logo" src="${LOGO_URL}" alt="Logo" />
+            <div class="folio">FOLIO 00</div>
+            <h1>LIBRO DE CONTROL DE ENTRADAS Y SALIDAS DE MATERIALES APROVECHABLES</h1>
+            <p class="center">EMPRESA: Alternativa Verde 2023, C.A.</p>
+            <p class="center">RIF: J-50470892-5</p>
+            <p class="center">CENTRO DE ACOPIO: ${centerLabel}</p>
+            <p class="center">REGISTRO ReNMA: 03-05-T-Ac-2024-398.</p>
+            <p class="next-folio">Folio siguiente: FOLIO 01: IDENTIFICACIÓN DE OPERACIONES REGIONALES</p>
+          </section>
+
+          <section class="page">
+            <img class="logo" src="${LOGO_URL}" alt="Logo" />
+            <div class="folio">FOLIO 01</div>
+            <h2 class="center">IDENTIFICACIÓN DE OPERACIONES REGIONALES</h2>
+            <div class="block">
+              <p><span class="label">Jefe de Operaciones:</span> ${jefeLabel}.</p>
+              <p><span class="label">Unidad de Transporte Autorizada:</span> ${vehicleLabel}, Placa ${vehiclePlate}.</p>
+            </div>
+            <p class="next-folio">Folio siguiente: BITÁCORA DE ENTRADAS (RECOLECCIÓN ${monthYearLabel})</p>
+          </section>
+
+          <section class="page">
+            <img class="logo" src="${LOGO_URL}" alt="Logo" />
+            <div class="folio">FOLIO 02</div>
+            <h2 class="center">BITÁCORA DE ENTRADAS (RECOLECCIÓN ${monthYearLabel})</h2>
+            <p>Este registro detalla los ${totalLitersLabel} litros recolectados en el período reportado.</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Codigo Ticket</th>
+                  <th>Fecha</th>
+                  <th>Generador / Establecimiento</th>
+                  <th>Sector</th>
+                  <th>Cantidad (Lts)</th>
+                  <th>Recolector</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableBody}
+              </tbody>
+            </table>
+            <p class="next-folio">Folio siguiente: BITÁCORA DE SALIDAS (DESPACHO ${monthYearLabel})</p>
+          </section>
+
+          <section class="page">
+            <img class="logo" src="${LOGO_URL}" alt="Logo" />
+            <div class="folio">FOLIO 03</div>
+            <h2 class="center">BITÁCORA DE SALIDAS (DESPACHO ${monthYearLabel})</h2>
+            <p>Este registro detalla los ${dispatchTotalLitersLabel} litros despachados en el período reportado.</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Descripción</th>
+                  <th>Presentación</th>
+                  <th>Cantidad (Lts)</th>
+                  <th>Destino</th>
+                  <th>Placa</th>
+                  <th>Chofer</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${dispatchTableBody}
+              </tbody>
+            </table>
+            <p class="next-folio">Folio siguiente: ESPECIFICACIONES TÉCNICAS Y CIERRE MENSUAL</p>
+          </section>
+
+          <section class="page">
+            <img class="logo" src="${LOGO_URL}" alt="Logo" />
+            <div class="folio">FOLIO 04</div>
+            <h2 class="center">ESPECIFICACIONES TÉCNICAS Y CIERRE MENSUAL</h2>
+            <div class="block">
+              <p><span class="label">Total Consolidado ${monthYearLabel}:</span> ${totalLitersLabel} Litros.</p>
+              <p><span class="label">Total Salidas ${monthYearLabel}:</span> ${dispatchTotalLitersLabel} Litros.</p>
+              <p><span class="label">Propiedades del Material:</span> Según Reporte REVEEX N° 36.940.</p>
+              <p><span class="label">Humedad:</span> 0.180%.</p>
+              <p><span class="label">Acidez:</span> 4.28.</p>
+              <p><span class="label">Índice de Peróxido:</span> 3.18 meq/kg.</p>
+              <p><span class="label">Clasificación NFPA 704:</span> Salud: 0; Inflamabilidad: 1; Reactividad: 0.</p>
+              <p><span class="label">Validado por:</span> ${jefeName}</p>
+              <p><span class="label">Sello:</span> Alternativa Verde 2023, C.A.</p>
+            </div>
+          </section>
+
+          <section class="page">
+            <img class="logo" src="${LOGO_URL}" alt="Logo" />
+            <div class="folio">FOLIO 05</div>
+            <h2 class="center">DIAGNOSTICO DE VOLUMEN ${monthYearLabel}</h2>
+            <p><span class="label">Tickets totales cargados:</span> ${allItems.length}</p>
+            <p><span class="label">Tickets del mes:</span> ${filtered.length}</p>
+            <p><span class="label">Tickets fuera del mes:</span> ${outsideMonthCount}</p>
+            <p><span class="label">Tickets con fecha invalida:</span> ${invalidDateCount}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Centro de Acopio</th>
+                  <th>Tickets</th>
+                  <th>Litros</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${centerTableBody}
+              </tbody>
+            </table>
+          </section>
+          <script>
+            window.addEventListener('load', function () {
+              const images = Array.from(document.images);
+              if (!images.length) {
+                window.focus();
+                window.print();
+                return;
+              }
+              let loaded = 0;
+              const done = function () {
+                window.focus();
+                window.print();
+              };
+              images.forEach(function (img) {
+                if (img.complete) {
+                  loaded += 1;
+                  if (loaded === images.length) done();
+                  return;
+                }
+                img.onload = function () {
+                  loaded += 1;
+                  if (loaded === images.length) done();
+                };
+                img.onerror = function () {
+                  loaded += 1;
+                  if (loaded === images.length) done();
+                };
+              });
+            });
+          </script>
+        </body>
+        </html>
+      `;
+
+      const popup = window.open('', '_blank', 'width=1024,height=768');
+      if (!popup) {
+        alert('Permite las ventanas emergentes para generar el libro.');
+        return;
+      }
+      popup.document.open();
+      popup.document.write(reportHtml);
+      popup.document.close();
+      popup.focus();
+    } finally {
+      setIsBookGenerating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -191,6 +593,14 @@ const History: React.FC = () => {
         >
           <FileDown className="w-4 h-4" />
           {isExporting ? 'Exportando...' : 'Exportar Excel'}
+        </button>
+        <button
+          onClick={handleBookExport}
+          disabled={isBookGenerating}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+        >
+          <Printer className="w-4 h-4" />
+          {isBookGenerating ? 'Generando...' : 'Libro de Control'}
         </button>
       </div>
 
@@ -216,6 +626,26 @@ const History: React.FC = () => {
                 onChange={(e) => setFilterDate(e.target.value)}
               />
           </div>
+          <select
+            className="pl-4 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+            value={bookMonth}
+            onChange={(e) => setBookMonth(e.target.value)}
+            aria-label="Mes del libro"
+          >
+            {months.map(month => (
+              <option key={month.value} value={month.value}>{month.label}</option>
+            ))}
+          </select>
+          <select
+            className="pl-4 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+            value={bookYear}
+            onChange={(e) => setBookYear(e.target.value)}
+            aria-label="Año del libro"
+          >
+            {years.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
         </div>
       </div>
 
