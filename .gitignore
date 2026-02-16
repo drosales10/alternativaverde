@@ -11,6 +11,17 @@ node_modules
 dist
 dist-ssr
 *.local
+coverage
+.cache
+.eslintcache
+.turbo
+.vite
+.pnpm-store
+
+# Env files
+.env
+.env.*
+.env.*.local
 
 # Editor directories and files
 .vscode/*
