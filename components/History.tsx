@@ -663,10 +663,11 @@ const History: React.FC = () => {
             Limpiar orden
           </button>
         </div>
-        <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[1080px] text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">
+              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase sticky left-0 z-30 bg-slate-50 min-w-[170px]">
                 <button
                   type="button"
                   onClick={() => toggleSort('ticketNumber')}
@@ -680,7 +681,7 @@ const History: React.FC = () => {
                   )}
                 </button>
               </th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">
+              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase sticky left-[170px] z-30 bg-slate-50 min-w-[140px]">
                 <button
                   type="button"
                   onClick={() => toggleSort('date')}
@@ -750,7 +751,7 @@ const History: React.FC = () => {
                   )}
                 </button>
               </th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Acciones</th>
+              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right sticky right-0 z-30 bg-slate-50 min-w-[220px]">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -762,8 +763,8 @@ const History: React.FC = () => {
               </tr>
             ) : sortedTickets.map((ticket) => (
               <tr key={ticket.id} className="hover:bg-slate-50 transition-colors group">
-                <td className="px-6 py-4 font-mono text-sm text-emerald-700 font-semibold">{ticket.ticketNumber}</td>
-                <td className="px-6 py-4 text-sm text-slate-600">{ticket.date}</td>
+                <td className="px-6 py-4 font-mono text-sm text-emerald-700 font-semibold sticky left-0 z-20 bg-white group-hover:bg-slate-50 min-w-[170px]">{ticket.ticketNumber}</td>
+                <td className="px-6 py-4 text-sm text-slate-600 sticky left-[170px] z-20 bg-white group-hover:bg-slate-50 min-w-[140px]">{ticket.date}</td>
                 <td className="px-6 py-4 text-sm text-slate-600">{resolveCenterName(ticket.collectionCenterId || null)}</td>
                 <td className="px-6 py-4">
                   <span className="text-sm font-medium text-slate-900">{ticket.generatorName}</span>
@@ -774,7 +775,7 @@ const History: React.FC = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600">{ticket.collectorName}</td>
-                <td className="px-6 py-4 text-right space-x-3">
+                <td className="px-6 py-4 text-right space-x-3 sticky right-0 z-20 bg-white group-hover:bg-slate-50 whitespace-nowrap min-w-[220px]">
                   <Link
                     to={`/print/${ticket.id}`}
                     className="p-2 inline-block text-slate-400 hover:text-emerald-600 bg-slate-100 hover:bg-emerald-50 rounded-lg transition-all"
@@ -817,6 +818,7 @@ const History: React.FC = () => {
             ))}
           </tbody>
         </table>
+        </div>
 
         {!isLoading && tickets.length === 0 && (
           <div className="py-20 text-center">

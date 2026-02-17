@@ -287,10 +287,10 @@ const Dispatches: React.FC = () => {
             Limpiar orden
           </button>
         </div>
-        <table className="w-full text-left border-collapse">
+        <table className="w-full min-w-[1650px] text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-4 py-3 text-sm font-medium">
+              <th className="px-4 py-3 text-sm font-medium sticky left-0 z-30 bg-slate-50 min-w-[150px]">
                 <button type="button" onClick={() => toggleSort('date')} className="flex items-center gap-2">
                   Fecha
                   {sortKey === 'date' ? (
@@ -420,7 +420,7 @@ const Dispatches: React.FC = () => {
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-sm font-medium">Acciones</th>
+              <th className="px-4 py-3 text-sm font-medium sticky right-0 z-30 bg-slate-50 min-w-[140px]">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -431,8 +431,8 @@ const Dispatches: React.FC = () => {
             ) : sortedDispatches.map(d => {
               const vehicle = vehicleById(d.vehicleId);
               return (
-                <tr key={d.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 text-sm">
+                <tr key={d.id} className="hover:bg-slate-50 transition-colors group">
+                  <td className="px-4 py-3 text-sm sticky left-0 z-20 bg-white group-hover:bg-slate-50 min-w-[150px]">
                     {editingId === d.id ? (
                       <input
                         type="date"
@@ -442,7 +442,7 @@ const Dispatches: React.FC = () => {
                       />
                     ) : d.date}
                   </td>
-                  <td className="px-4 py-3 text-sm">
+                  <td className="px-4 py-3 text-sm sticky right-0 z-20 bg-white group-hover:bg-slate-50 whitespace-nowrap min-w-[140px]">
                     {editingId === d.id ? (
                       <input
                         className="p-2 border rounded w-full"

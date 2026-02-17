@@ -192,10 +192,10 @@ const Vehicles: React.FC = () => {
             Limpiar orden
           </button>
         </div>
-        <table className="w-full text-left border-collapse">
+        <table className="w-full min-w-[1100px] text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-4 py-3 text-sm font-medium">
+              <th className="px-4 py-3 text-sm font-medium sticky left-0 z-30 bg-slate-50 min-w-[160px]">
                 <button type="button" onClick={() => toggleSort('plate')} className="flex items-center gap-2">
                   Placa
                   {sortKey === 'plate' ? (
@@ -255,7 +255,7 @@ const Vehicles: React.FC = () => {
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-sm font-medium">Acciones</th>
+              <th className="px-4 py-3 text-sm font-medium sticky right-0 z-30 bg-slate-50 min-w-[130px]">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -264,13 +264,13 @@ const Vehicles: React.FC = () => {
             ) : vehicles.length === 0 ? (
               <tr><td colSpan={7} className="p-6 text-center">No hay vehiculos.</td></tr>
             ) : sortedVehicles.map(v => (
-              <tr key={v.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3 text-sm">
+              <tr key={v.id} className="hover:bg-slate-50 transition-colors group">
+                <td className="px-4 py-3 text-sm sticky left-0 z-20 bg-white group-hover:bg-slate-50 min-w-[160px]">
                   {editingId === v.id ? (
                     <input className="p-2 border rounded w-full" value={form.plate} onChange={e => handleChange('plate', e.target.value)} />
                   ) : v.plate}
                 </td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-4 py-3 text-sm sticky right-0 z-20 bg-white group-hover:bg-slate-50 whitespace-nowrap min-w-[130px]">
                   {editingId === v.id ? (
                     <input className="p-2 border rounded w-full" value={form.brand} onChange={e => handleChange('brand', e.target.value)} />
                   ) : v.brand}

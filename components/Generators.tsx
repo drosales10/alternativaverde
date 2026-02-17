@@ -182,10 +182,10 @@ const Generators: React.FC = () => {
             Limpiar orden
           </button>
         </div>
-        <table className="w-full text-left border-collapse">
+        <table className="w-full min-w-[1200px] text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-4 py-3 text-sm font-medium">
+              <th className="px-4 py-3 text-sm font-medium sticky left-0 z-30 bg-slate-50 min-w-[220px]">
                 <button type="button" onClick={() => toggleSort('name')} className="flex items-center gap-2">
                   Nombre
                   {sortKey === 'name' ? (
@@ -255,7 +255,7 @@ const Generators: React.FC = () => {
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-sm font-medium">Acciones</th>
+              <th className="px-4 py-3 text-sm font-medium sticky right-0 z-30 bg-slate-50 min-w-[150px]">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -264,8 +264,8 @@ const Generators: React.FC = () => {
             ) : gens.length === 0 ? (
               <tr><td colSpan={8} className="p-6 text-center">No hay generadores.</td></tr>
             ) : sortedGens.map(g => (
-              <tr key={g.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3 text-sm">
+              <tr key={g.id} className="hover:bg-slate-50 transition-colors group">
+                <td className="px-4 py-3 text-sm sticky left-0 z-20 bg-white group-hover:bg-slate-50 min-w-[220px]">
                   {editingId === g.id ? (
                     <input className="p-2 border rounded w-full" value={form.name} onChange={e => handleChange('name', e.target.value)} />
                   ) : g.name}
@@ -273,7 +273,7 @@ const Generators: React.FC = () => {
                 <td className="px-4 py-3 text-sm">{editingId === g.id ? <input className="p-2 border rounded w-full" value={form.rif} onChange={e => handleChange('rif', e.target.value)} /> : g.rif}</td>
                 <td className="px-4 py-3 text-sm">{editingId === g.id ? <input className="p-2 border rounded w-full" value={form.phone} onChange={e => handleChange('phone', e.target.value)} /> : g.phone}</td>
                 <td className="px-4 py-3 text-sm">{editingId === g.id ? <input className="p-2 border rounded w-full" value={form.sector} onChange={e => handleChange('sector', e.target.value)} /> : g.sector}</td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-4 py-3 text-sm sticky right-0 z-20 bg-white group-hover:bg-slate-50 whitespace-nowrap min-w-[150px]">
                   {editingId === g.id ? (
                     <input className="p-2 border rounded w-full" value={form.address} onChange={e => handleChange('address', e.target.value)} />
                   ) : g.address}
