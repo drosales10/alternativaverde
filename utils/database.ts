@@ -1,7 +1,8 @@
 import { Ticket, Generator, MaterialState, Vehicle, CollectionCenter, CollectionCenterMember, AppConfiguration, Dispatch } from '../types';
 import { RAW_SEED_DATA, MATERIAL_DESCRIPTION } from '../constants';
 
-const API_BASE = typeof window !== 'undefined' ? (window.location.hostname === 'localhost' ? 'http://localhost:4000' : '') : '';
+const envApiBase = (import.meta.env.VITE_API_BASE_URL || '').toString().trim().replace(/\/$/, '');
+const API_BASE = envApiBase || (typeof window !== 'undefined' ? (window.location.hostname === 'localhost' ? 'http://localhost:4000' : '') : '');
 
 const DB_KEYS = {
   TICKETS: 'av_tickets',
